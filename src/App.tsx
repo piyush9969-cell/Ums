@@ -1,38 +1,55 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import "./App.css";
 import type { User } from "../src/types/User";
 import UserForm from "./components/UserForm";
 import UserListView from "./components/UserListView";
+import { useUser } from "./hooks/useUser";
 
 
 
 const App = () => {
-  const savedUsers = localStorage.getItem("users");
-  const initialUsers = savedUsers ? JSON.parse(savedUsers) : [];
+  // const savedUsers = localStorage.getItem("users");
+  // const initialUsers = savedUsers ? JSON.parse(savedUsers) : [];
   
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const {users, setUsers,loading,error} =  useUser();
 
   const [showForm, setShowForm] = useState<boolean>(false);
+  const [query, setQuery] = useState<string>("");
 
-  //add to localStorage everytime, users changess.
-  useEffect(() => {
-    localStorage.setItem("users", JSON.stringify(users));
-  }, [users]);
+  //const [users, setUsers] = useState<User[]>(initialUsers);
+  // //add to localStorage everytime, users changess.
+  // useEffect(() => {
+  //   localStorage.setItem("users", JSON.stringify(users));
+  // }, [users]);
 
-  const addUser = (newUser: Omit<User,"id">) => {
-    const updatedUser : User = {
+
+  const addUser = useCallback((newUser: Omit<User, "id">) => {
+    const updatedUser: User = {
       id: crypto.randomUUID(),
-      ...newUser
-    }
+      ...newUser,
+    };
 
-    setUsers([...users,updatedUser]);
+    setUsers((prev) => [...prev,updatedUser])
     setShowForm(false);
-  };
+  }, [setUsers]);
 
-  const deleteUser = (id:string) => {
-    const filteredUsers = users.filter((user)=> user.id !==id)
-    setUsers (filteredUsers);
-  }
+  const onDeleteUser = useCallback((id:string)=> {
+    setUsers((prev) => prev.filter((user) => user.id !== id));
+  },[setUsers]);
+
+  const onSelectUser = useCallback((user:User) => {
+    console.log("Selected user:", user);
+  },[])
+
+
+  //heavy calc, only recompute when users or query changes
+  const filteredUsers = useMemo(() => {
+    const q = query.toLowerCase();
+    return users.filter((user) => 
+      user.name.toLowerCase().includes(q) || user.email.toLowerCase().includes(q)
+    )
+  },[users,query])
+  
   return (
     <div className="app-container">
       <header className="app-header">
@@ -46,16 +63,24 @@ const App = () => {
       </header>
 
       <main className="app-main">
+        <input
+          placeholder="Search by name or email..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+
+        {loading && <p>Loading users...</p>}
+        {error && <p className="error">{error}</p>}
+
         {showForm && (
           <div className="form-section">
-            <UserForm
-              onAddUser={addUser}
-              onCancel={() => setShowForm(false)}
-            />
+            <UserForm onAddUser={addUser} onCancel={() => setShowForm(false)} />
           </div>
         )}
 
-        <UserListView users={users} onDeleteUser={deleteUser} />
+        {!loading && !error && (
+          <UserListView users={filteredUsers} onSelectUser = {onSelectUser} onDeleteUser={onDeleteUser} />
+        )}
       </main>
     </div>
   );

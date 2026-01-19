@@ -3,9 +3,10 @@ import type { User } from "../types/User";
 interface UserListViewProps {
     users: User[];
     onDeleteUser: (id: string) => void;
+    onSelectUser: (user: User) => void;
 }
 
-export default function UserListView({users, onDeleteUser}: UserListViewProps) {
+export default function UserListView({users, onDeleteUser, onSelectUser}: UserListViewProps) {
     if(users.length === 0){
         return (
           <div className="empty-state">
@@ -46,6 +47,15 @@ export default function UserListView({users, onDeleteUser}: UserListViewProps) {
                 >
                   Delete
                 </button>
+              
+                  <button
+                    className="btn-select"
+                    onClick={() => onSelectUser(user)}
+                    title="Select user"
+                  >
+                    Select
+                  </button>
+              
               </td>
             </tr>
           ))}
